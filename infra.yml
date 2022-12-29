@@ -1,0 +1,153 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Semester Three Infra Template
+
+Parameters: 
+  PrivateSubnet1CIDR:
+        Description: IP range (CIDR notation) for the private subnet in the first Availability Zone
+        Type: String
+        Default: 10.0.0.0/24
+
+  PrivateSubnet2CIDR:
+      Description: IP range (CIDR notation) for the private subnet in the second Availability Zone
+      Type: String
+      Default: 10.0.1.0/24
+  
+  PublicSubnet1CIDR:
+      Description: IP range (CIDR notation) for the public subnet in the first Availability Zone
+      Type: String
+      Default: 10.0.2.0/24
+
+  PublicSubnet2CIDR:
+      Description: IP range (CIDR notation) for the public subnet in the second Availability Zone
+      Type: String
+      Default: 10.0.3.0/24
+  
+  ImageId:
+    Description: AMI image id for the servers
+    Type: String
+    Default: ami-0d70546e43a941d70
+
+Resources: 
+  ProjectVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      Tags:
+        - Key: Desc
+          Value: VPC for entire project
+    
+  # Subnets
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:  !Select [0, !GetAZs '']
+      VpcId: !Ref ProjectVPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      Tags:
+        - Key: Desc
+          Value: First private subnet
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs '']
+      VpcId: !Ref ProjectVPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      Tags:
+        - Key: Desc
+          Value: Second private subnet
+  
+  # PublicSubnet1:
+  #   Type: AWS::EC2::Subnet
+  #   Properties:
+  #     AvailabilityZone: !Select [0, !GetAZs '']
+  #     VpcId: !Ref ProjectVPC
+  #     CidrBlock: !Ref PublicSubnet1CIDR
+  #     Tags:
+  #       - Key: Desc
+  #         Value: First public subnet
+  
+  # PublicSubnet2:
+  #   Type: AWS::EC2::Subnet
+  #   Properties:
+  #     AvailabilityZone: !Select [1, !GetAZs '']
+  #     VpcId: !Ref ProjectVPC
+  #     CidrBlock: !Ref PublicSubnet2CIDR
+  #     Tags:
+  #       - Key: Desc
+  #         Value: Second public subnet
+  
+  # Security Groups
+  PrivateInstancesSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SecGrp
+      GroupDescription: 
+      VpcId: !Ref ProjectVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Desc
+          Value: Security Group for instances exposing ingress at http and ssh and egress at all ports
+  
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: 
+      GroupDescription: 
+      VpcId: !Ref ProjectVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Desc
+          Value: Security Group for the load balancer exposing ingress and egress at http only
+
+  # # Gateways
+  # PrivateSubnet1Gateway:
+  #   Type: AWS::EC2::VPNGateway
+  #   Properties:
+  #     Type: ipsec.1
+  #     Tags:
+  #       - Key: Desc
+  #         Value: VPN gatewat for for the first subnet
+  # AttachFirstVpnGateway:
+  #   Type: AWS::EC2::VPCGatewayAttachment
+  #   Properties:
+  #     VpcId: AttachFirstVpnGateway
+  #     VpnGatewayId: !Ref PrivateSubnet1Gateway  
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Desc
+          Value: VPC Internet Gateway
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref ProjectVPC
+      InternetGatewayId: !Ref InternetGateway
+  
+
+
+# Outputs:
