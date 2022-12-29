@@ -5,33 +5,33 @@ Parameters:
   PrivateSubnet1CIDR:
         Description: IP range (CIDR notation) for the private subnet in the first Availability Zone
         Type: String
-        Default: 10.0.0.0/24
+        Default: 11.0.0.0/24
 
   PrivateSubnet2CIDR:
       Description: IP range (CIDR notation) for the private subnet in the second Availability Zone
       Type: String
-      Default: 10.0.1.0/24
+      Default: 11.0.1.0/24
   
   PublicSubnet1CIDR:
       Description: IP range (CIDR notation) for the public subnet in the first Availability Zone
       Type: String
-      Default: 10.0.2.0/24
+      Default: 11.0.2.0/24
 
   PublicSubnet2CIDR:
       Description: IP range (CIDR notation) for the public subnet in the second Availability Zone
       Type: String
-      Default: 10.0.3.0/24
+      Default: 11.0.3.0/24
   
   ImageId:
     Description: AMI image id for the servers
     Type: String
-    Default: ami-0d70546e43a941d70
+    Default: ami-0a6b2839d44d781b2
 
 Resources: 
   ProjectVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 10.0.0.0/16
+      CidrBlock: 11.0.0.0/16
       EnableDnsSupport: true
       Tags:
         - Key: Desc
@@ -58,32 +58,32 @@ Resources:
         - Key: Desc
           Value: Second private subnet
   
-  # PublicSubnet1:
-  #   Type: AWS::EC2::Subnet
-  #   Properties:
-  #     AvailabilityZone: !Select [0, !GetAZs '']
-  #     VpcId: !Ref ProjectVPC
-  #     CidrBlock: !Ref PublicSubnet1CIDR
-  #     Tags:
-  #       - Key: Desc
-  #         Value: First public subnet
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      VpcId: !Ref ProjectVPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      Tags:
+        - Key: Desc
+          Value: First public subnet
   
-  # PublicSubnet2:
-  #   Type: AWS::EC2::Subnet
-  #   Properties:
-  #     AvailabilityZone: !Select [1, !GetAZs '']
-  #     VpcId: !Ref ProjectVPC
-  #     CidrBlock: !Ref PublicSubnet2CIDR
-  #     Tags:
-  #       - Key: Desc
-  #         Value: Second public subnet
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs '']
+      VpcId: !Ref ProjectVPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      Tags:
+        - Key: Desc
+          Value: Second public subnet
   
   # Security Groups
   PrivateInstancesSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: SecGrp
-      GroupDescription: 
+      GroupName: PrivateInstancesSecurityGroup
+      GroupDescription: Allow http and ssh to the resource
       VpcId: !Ref ProjectVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -106,8 +106,8 @@ Resources:
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: 
-      GroupDescription: 
+      GroupName: LoadBalancerSecurityGroup
+      GroupDescription: Allow http to the load balancer
       VpcId: !Ref ProjectVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -123,19 +123,7 @@ Resources:
         - Key: Desc
           Value: Security Group for the load balancer exposing ingress and egress at http only
 
-  # # Gateways
-  # PrivateSubnet1Gateway:
-  #   Type: AWS::EC2::VPNGateway
-  #   Properties:
-  #     Type: ipsec.1
-  #     Tags:
-  #       - Key: Desc
-  #         Value: VPN gatewat for for the first subnet
-  # AttachFirstVpnGateway:
-  #   Type: AWS::EC2::VPCGatewayAttachment
-  #   Properties:
-  #     VpcId: AttachFirstVpnGateway
-  #     VpnGatewayId: !Ref PrivateSubnet1Gateway  
+  # Gateways
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -147,6 +135,30 @@ Resources:
     Properties:
       VpcId: !Ref ProjectVPC
       InternetGatewayId: !Ref InternetGateway
+
+  NATEIP1:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachInternetGateway
+    Properties:
+      Domain: vpc
+  
+  NatGateway1: 
+    Type: AWS::EC2::NatGateway
+    Properties: 
+        AllocationId: !GetAtt NATEIP1.AllocationId
+        SubnetId: !Ref PublicSubnet1
+
+  NATEIP2:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachInternetGateway
+    Properties:
+      Domain: vpc
+  
+  NatGateway2: 
+    Type: AWS::EC2::NatGateway
+    Properties: 
+        AllocationId: !GetAtt NATEIP2.AllocationId
+        SubnetId: !Ref PublicSubnet2
   
 
 
