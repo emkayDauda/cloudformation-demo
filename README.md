@@ -15,11 +15,5 @@ The shell scripts are a simple wrapper for the `aws cloudformation` command. The
 3. Create the server infrastructure by running the `server-infra` stack to complete the project.
 4. To make things slightly easier, one of the outputs of the server-infra stack is the DNS name of the load balancer. Simply copy that out and open in a new tab. Alternatively, go to the load balancer on the console and copy out the domain name from there
 
-> N.B. There was no need to use ansible since every requirement of the project could be completed using Cloudformation only
+> N.B. There was no need to use ansible or any other provisioning tool since every requirement of the project could be completed using `UserData`
 
-## IAM Credentials
-IAM Account ID: 716239669288
-
-IAM User name: Valentine
-
-IAM password: abc123ABC
